@@ -1,0 +1,15 @@
+h1{
+    background-color: aqua;
+}
+
+#my_canvas{
+    display: flex;
+    position: relative;
+
+    margin: 0 auto;
+
+    width: 600px;
+    height: 600px;
+
+    background-color: rgb(164, 164, 164);
+}
