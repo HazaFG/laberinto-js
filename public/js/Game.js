@@ -49,13 +49,13 @@ let x = 0;
 let y = 0;
 var pausa = false;
 let vidasNpc = 7;
-let vidas = 10;
+let vidas = 40;
 
 let direccionDisparo = true;
 
 let disparoActivo = false; // Variable para manejar el estado de disparo
 // let disparo = "";
-let municion;
+let municion = 80;
 
 let direccion = "";
 const bloque = 32;
@@ -452,19 +452,34 @@ class Npc {
             }
         }
 
-        // Mueve el NPC hacia la izquierda lentamente
-        this.x -= this.moveSpeed;
+        // Verificar si el NPC tiene vidas
+        if (this.vidas > 0) {
+            // Mueve el NPC hacia la izquierda lentamente
+            this.x -= this.moveSpeed;
 
-        if(this.x <= 100){
-            this.x = 900;
+            // Reubica el NPC si se sale del área visible
+            if(this.x <= 100) {
+                this.x = 900;
+            }
+        } else {
+            // Reubicar el NPC a una nueva posición cuando se quede sin vidas
+            this.reubicar();
         }
 
-        if(this.vidas <= 0){
-            console.log('npc sin vidas')
-            this.x = 1900;
-        }
         // Mueve y actualiza todos los proyectiles
         this.proyectiles.forEach(proyectil => proyectil.mover());
+    }
+
+    reubicar() {
+        // Establece una nueva posición aleatoria o predeterminada
+        this.x = Math.random() * (my_canvas.width - this.w);
+        this.y = Math.random() * (my_canvas.height - this.h);
+
+        // Reinicia las vidas o realiza cualquier otra configuración necesaria
+        this.vidas = 3; // Por ejemplo, reinicia las vidas del NPC
+
+        // Puedes ajustar la velocidad o el comportamiento si es necesario
+        this.moveSpeed = 0.2; // Reinicia la velocidad de movimiento
     }
 
     colisionPared(row, col) {
@@ -569,7 +584,7 @@ class Rectangulo {
         if (mapa[col] && mapa[row][col] === 70){
             console.log("colision con tarjeta")
             console.log(removerTarjeta1)
-            this.municion =80;
+            this.municion = 80;
             removerTarjeta1 = true;
             alertaMostrada = false;
         }
@@ -701,9 +716,24 @@ let player = new Rectangulo(160, 128, 22, 32);
 
 // let npc = new Npc(800, 400, 21, 32);
 let npc = [
-    new Npc(100, 100, 21, 32, vidasNpc),
-    new Npc(300, 400, 21, 32, vidasNpc),
+    new Npc(300, 90, 21, 32, vidasNpc),
+    new Npc(400, 110, 21, 32, vidasNpc),
+
+    new Npc(300, 500, 21, 32, vidasNpc),
+    new Npc(400, 520, 21, 32, vidasNpc),
+
+    new Npc(600, 600, 21, 32, vidasNpc),
     new Npc(500, 600, 21, 32, vidasNpc),
+
+    new Npc(300, 700, 21, 32, vidasNpc),
+    new Npc(400, 800, 21, 32, vidasNpc),
+
+    new Npc(300, 900, 21, 32, vidasNpc),
+    new Npc(400, 1000, 21, 32, vidasNpc),
+
+    new Npc(500, 1000, 21, 32, vidasNpc),
+    new Npc(700, 1100, 21, 32, vidasNpc),
+
 ];
 
 
@@ -718,6 +748,9 @@ let yOffset = 0; // Desplazamiento del mapa en el eje Y
 const gif = new Image();
 gif.src = '../assets/life.gif';
 
+const bala = new Image();
+bala.src = '../assets/bullet.png';
+
 function pintar() {
     update();
     dibujarMatriz();
@@ -727,12 +760,17 @@ function pintar() {
         npcInstance.draw(ctx, npcSprite, xOffset, yOffset);
     });
 
+
     // Dibujar el score en la esquina superior
     ctx.strokeText(`score: ${score}`, 240, 20);
- 
     ctx.drawImage(gif, 180, 7, 22, 22);  
 
-    ctx.fillText(vidas, 210, 22);  // Ajusta la posición (210, 25) para alinearlo correctamente
+    ctx.drawImage(bala, 130, 7, 22, 22);  
+    // Dibujar la munición en el canvas
+    ctx.fillText(player.municion, 150, 22); 
+
+    ctx.fillStyle = 'black'
+    ctx.fillText(vidas, 210, 22); 
     
 
     // Dibujar al jugador
@@ -1122,7 +1160,8 @@ function update() {
         player.proyectiles.forEach(proyectil => {
             proyectil.mover();
 
-            npc.forEach((npcInstance, index) => {
+            // Recorre los NPCs
+            npc.forEach(npcInstance => {
                 if (detectarColision(proyectil, npcInstance)) {
                     console.log("El jugador golpeó al NPC");
 
@@ -1130,19 +1169,15 @@ function update() {
                     npcInstance.vidas -= 1;
                     console.log("Vidas restantes del NPC:", npcInstance.vidas);
 
-                    // Si las vidas del NPC llegan a 0, reubicarlo o eliminarlo
+                    // Si las vidas del NPC llegan a 0, reubicarlo
                     if (npcInstance.vidas <= 0) {
                         console.log("NPC sin vidas. Reubicando...");
-                        npcInstance.x = 1900; 
-                        score = score + 50
-                        // Reubicar el NPC
-                        // O si deseas eliminar el NPC, podrías usar:
-                        // npc.splice(index, 1); // Eliminar el NPC del array
+                        score += 50;
+                        npcInstance.reubicar(); // Reubica el NPC
                     }
                 }
             });
         });
-
         // Mover proyectiles del NPC y detectar colisiones con el jugador
         npc.forEach(npcInstance => {
             npcInstance.proyectiles.forEach(proyectil => {
@@ -1151,6 +1186,10 @@ function update() {
                 if (detectarColision(proyectil, player)) {
                     console.log("El NPC golpeó al jugador");
                     vidas = vidas - 1;
+                    if(vidas <= 0){
+                        alert("Has sido eliminado, inténtalo de nuevo.")
+                        window.location.href = '../../index.html';
+                    }
                 }
             });
         });
