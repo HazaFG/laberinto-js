@@ -11,13 +11,12 @@ document.querySelector('#app').innerHTML = `
     <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
       <img src="${javascriptLogo}" class="logo vanilla" alt="JavaScript logo" />
     </a>
-    <h1>Hello Vite!</h1>
+    <h1>Escape from Scariff</h1>
     <div class="card">
-      <button id="counter" type="button"></button>
-      <a href = "./views/Game.html">Hola perro</a>
+      <a href = "./views/Game.html">JUGAR</a>
     </div>
     <p class="read-the-docs">
-      Click on the Vite logo to learn more
+      Creado por Hazael Flores
     </p>
   </div>
 `

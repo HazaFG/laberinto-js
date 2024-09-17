@@ -1,15 +1,23 @@
 h1{
-    background-color: aqua;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+    font-size: 2rem;
+    text-align: center;
+}
+
+body{
+    background-color: #2d2d2d;
 }
 
 #my_canvas{
+    border-radius: 5px;
     display: flex;
     position: relative;
 
     margin: 0 auto;
 
-    width: 790px;
-    height: 790px;
+    width: 850px;
+    height: 850px;
 
-    background-color: rgb(0, 0, 0);
+    background-color: #2d2d2d;
 }

@@ -1,7 +1,6 @@
 const my_canvas = document.getElementById('my_canvas');
 const ctx = my_canvas.getContext('2d');
 
-
 // Modo pantalla completa
 const pantallaCompleta = document.getElementById('pantalla_completa');
 pantallaCompleta.addEventListener('click', function () {
@@ -22,103 +21,40 @@ function ajustarCanvas() {
     my_canvas.height = 400;
 }
 
-// Cuando se activa o sale del modo pantalla completa, ajustar el tamaño del canvas
 document.addEventListener('fullscreenchange', ajustarCanvas);
 document.addEventListener('webkitfullscreenchange', ajustarCanvas);
 document.addEventListener('mozfullscreenchange', ajustarCanvas);
 document.addEventListener('MSFullscreenChange', ajustarCanvas);
 
+
+let teclasPresionadas = {
+    left: false,
+    up: false,
+    right: false,
+    down: false,
+    disparo: false,
+};
+
 let x = 0;
 let y = 0;
 var pausa = false;
 
+let direccionDisparo = true;
+
+let disparoActivo = false; // Variable para manejar el estado de disparo
+// let disparo = "";
+let municion;
+
 let direccion = "";
 const bloque = 32;
-
-const mapa = [
-    [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 10, 10, ],
-    [11, 11, 11, 11, 10, 10, 10, 11, 10, 10, 10, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, ],
-    [81, 82, 83, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 10, 10, 11, ],
-    [84, 85, 86, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 10, 10, 10, 11, 11, 11, ],
-    [87, 88, 89, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 19, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 11, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, ],
-    [11, 90, 11, 11, 12, 10, 13, 11, 80, 11, 11, 11, 11, 11, 11, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11, ],
-    [11, 81, 82, 83, 12, 10, 13, 11, 11, 11, 80, 10, 11, 11, 11, 12, 10, 51, 14, 14, 14, 14, 14, 14, 14, 14, 14, 18, 11, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11, ],
-    [90, 84, 85, 86, 12, 10, 13, 11, 11, 11, 11, 10, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, ],
-    [11, 87, 88, 89, 12, 10, 13, 11, 11, 11, 11, 10, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, ],
-    [11, 11, 80, 11, 12, 10, 13, 11, 11, 11, 11, 10, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 19, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 11, ],
-    [11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 10, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, ],
-    [90, 11, 11, 11, 12, 10, 50, 15, 15, 15, 15, 10, 15, 15, 15, 53, 10, 50, 15, 15, 15, 15, 15, 15, 15, 20, 11, 11, 12, 10, 51, 14, 14, 14, 14, 14, 14, 52, 51, 18, 11, ],
-    [11, 11, 11, 11, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 12, 13, 11, 11, ],
-    [11, 11, 90, 11, 12, 10, 51, 14, 14, 14, 14, 14, 14, 14, 14, 14, 52, 10, 51, 14, 14, 14, 14, 52, 10, 13, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 12, 13, 11, 11, ],
-    [11, 11, 11, 90, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 12, 10, 13, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 12, 13, 11, 11, ],
-    [11, 90, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 12, 10, 13, 11, 11, 12, 10, 50, 20, 11, 11, 11, 11, 11, 12, 13, 11, 11, ],
-    [81, 82, 83, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 12, 10, 13, 11, 11, 12, 10, 51, 18, 11, 11, 11, 11, 11, 12, 13, 11, 11, ],
-    [84, 85, 86, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 12, 10, 13, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 12, 13, 11, 11, ],
-    [87, 88, 89, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 12, 10, 13, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 12, 13, 11, 11, ],
-    [81, 82, 83, 11, 12, 10, 13, 11, 11, 11, 19, 15, 15, 15, 15, 15, 53, 10, 13, 11, 11, 11, 11, 12, 10, 50, 15, 15, 53, 10, 13, 11, 11, 11, 11, 11, 11, 31, 33, 11, 11, ],
-    [84, 85, 86, 11, 12, 10, 13, 11, 11, 11, 12, 10, 10, 10, 10, 10, 10, 10, 13, 11, 11, 11, 11, 12, 10, 10, 10, 10, 10, 10, 13, 11, 11, 11, 11, 11, 11, 32, 34, 11, 11, ],
-    [87, 88, 89, 11, 12, 10, 13, 11, 11, 11, 12, 10, 51, 14, 14, 14, 52, 10, 13, 11, 11, 11, 11, 16, 14, 14, 14, 14, 14, 14, 18, 11, 11, 11, 11, 11, 11, 16, 18, 11, 11, ],
-    [81, 82, 83, 11, 12, 10, 13, 11, 11, 11, 16, 10, 18, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, ],
-    [84, 85, 86, 11, 12, 10, 13, 11, 11, 11, 10, 11, 10, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, ],
-    [87, 88, 89, 11, 12, 10, 13, 11, 10, 10, 10, 10, 10, 11, 11, 11, 12, 10, 50, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 11, ],
-    [11, 90, 11, 11, 12, 10, 13, 11, 10, 10, 10, 10, 10, 11, 11, 11, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, ],
-    [81, 82, 83, 11, 12, 10, 13, 11, 10, 10, 10, 10, 10, 11, 11, 11, 16, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 52, 10, 13, 11, ],
-    [84, 85, 86, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, ],
-    [87, 88, 89, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, ],
-    [11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 19, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, ],
-    [11, 21, 22, 22, 53, 10, 13, 11, 11, 11, 11, 11, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, ],
-    [11, 24, 62, 61, 60, 10, 13, 11, 11, 11, 11, 11, 12, 10, 51, 14, 14, 14, 14, 14, 52, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, ],
-    [11, 27, 28, 29, 12, 10, 13, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 12, 10, 50, 15, 31, 33, 30, 30, 35, 36, 37, 30, 30, 30, 30, 11, 11, 12, 10, 13, 11, ],
-    [11, 81, 82, 83, 12, 10, 13, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 12, 10, 10, 10, 32, 34, 30, 30, 38, 39, 30, 30, 30, 30, 30, 11, 11, 16, 10, 18, 11, ],
-    [11, 84, 85, 86, 12, 10, 13, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 12, 10, 51, 14, 18, 30, 30, 30, 30, 40, 30, 30, 30, 30, 30, 11, 11, 11, 10, 11, 11, ],
-    [11, 87, 88, 89, 12, 10, 13, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 30, 30, 30, 30, 30, 30, 30, 30, 11, 11, 10, 10, 10, 11, ],
-    [11, 81, 82, 83, 12, 10, 50, 15, 15, 15, 15, 15, 53, 10, 13, 11, 11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 30, 30, 30, 30, 30, 11, 11, 10, 10, 10, 11, ],
-    [80, 84, 85, 86, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, 19, 15, 15, 15, 53, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 10, 10, 10, 11, ],
-    [11, 87, 88, 89, 16, 14, 14, 14, 14, 14, 14, 14, 14, 14, 17, 11, 12, 10, 10, 10, 10, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, ],
-    [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 51, 14, 14, 14, 18, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, ],
-    [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 16, 10, 18, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, ],
-
-];
-
-class Rectangulo {
-    constructor(x, y, w, h) {
-        this.x = x;
-        this.y = y;
-        this.w = w;
-        this.h = h;
-    }
-
-    colisionPared(row, col) {
-        if (mapa[col] && mapa[row][col] === 11 || mapa[row] && mapa[row][col] === 13 || mapa[row] && mapa[row][col] === 14 || mapa[row] && mapa[row][col] === 16 || mapa[row] && mapa[row][col] === 17 || mapa[row] && mapa[row][col] === 18 || mapa[row] && mapa[row][col] === 19 
-            || mapa[row] && mapa[row][col] === 20  || mapa[row] && mapa[row][col] === 21  || mapa[row] && mapa[row][col] === 22  || mapa[row] && mapa[row][col] === 23  || mapa[row] && mapa[row][col] === 24  || mapa[row] && mapa[row][col] === 25  || mapa[row] && mapa[row][col] === 26  || mapa[row] && mapa[row][col] === 27  
-            || mapa[row] && mapa[row][col] === 28 || mapa[row] && mapa[row][col] === 31 
-            || mapa[row] && mapa[row][col] === 32 || mapa[row] && mapa[row][col] === 80 || mapa[row] && mapa[row][col] === 81 || mapa[row] && mapa[row][col] === 82 || mapa[row] && mapa[row][col] === 83
-            || mapa[row] && mapa[row][col] === 84 || mapa[row] && mapa[row][col] === 85 || mapa[row] && mapa[row][col] === 86 || mapa[row] && mapa[row][col] === 87 || mapa[row] && mapa[row][col] === 88 || mapa[row] && mapa[row][col] === 89) {
-            console.log("EL PEPE ETE SECH")
-            // Ajustar posición para evitar la colisión
-            switch (direccion) {
-                case "left":
-                    this.x += 5;
-                    break;
-                case "up":
-                    this.y += 5;
-                    break;
-                case "right":
-                    this.x -= 5;
-                    break;
-                case "down":
-                    this.y -= 5;
-                    break;
-            }
-        }
-    }
-}
-
-let rectangulo = new Rectangulo(128, 32, 32, 32);
 
 //11
 let roca = new Image();
 roca.src = '../assets/pared.png';
+
+//11
+let p95 = new Image();
+p95.src = '../assets/95.png';
 
 //11
 let piedra = new Image();
@@ -127,6 +63,32 @@ piedra.src = '../assets/80.png';
 //11
 let piedrita = new Image();
 piedrita.src = '../assets/90.png';
+
+//92
+let tarjeta1 = new Image();
+tarjeta1.src = '../assets/tarjeta1.png';
+
+//92
+let arbusto = new Image();
+arbusto.src = '../assets/92.png';
+
+let alertaMostrada = false; // Variable global
+
+
+//MAQUINAS DE CRACK
+
+// 54
+let maquina1 = new Image();
+maquina1.src = '../assets/33.png';
+// 55
+let maquina2 = new Image();
+maquina2.src = '../assets/31.png';
+// 56
+let maquina3 = new Image();
+maquina3.src = '../assets/32.png';
+// 57
+let maquina4 = new Image();
+maquina4.src = '../assets/33.png';
 
 
 //10
@@ -189,9 +151,27 @@ p60.src = '../assets/piso.png';
 let p61 = new Image();
 p61.src = '../assets/61.png';
 
+let p98 = new Image();
+p98.src = '../assets/98.png';
+
+let p97 = new Image();
+p97.src = '../assets/98.png';
+
+//60
+let tarjeta2 = new Image();
+tarjeta2.src = '../assets/tarjeta2.png';
+
+//60
+let tarjeta3 = new Image();
+tarjeta3.src = '../assets/tarjeta3.png';
+
 //60
 let p62 = new Image();
 p62.src = '../assets/62.png';
+
+//63
+let p63 = new Image();
+p63.src = '../assets/63.png';
 
 // PAREDES DE COLOR NEGRO
 
@@ -240,6 +220,10 @@ p30.src = '../assets/30.png';
 let pistola1 = new Image();
 pistola1.src = '../assets/gun.png';
 
+//Pistola2
+let pistola2 = new Image();
+pistola2.src = '../assets/gun1.png';
+
 
 //MESA DE CRACK
 
@@ -283,6 +267,37 @@ p39.src = '../assets/39.png';
 let p40 = new Image();
 p40.src = '../assets/40.png';
 
+let p41 = new Image();
+p41.src = '../assets/41.png';
+
+//32
+let p42 = new Image();
+p42.src = '../assets/42.png';
+
+//32
+let p43 = new Image();
+p43.src = '../assets/43.png';
+
+//38
+let p44 = new Image();
+p44.src = '../assets/44.png';
+
+//38
+let p45 = new Image();
+p45.src = '../assets/45.png';
+
+//38
+let p46 = new Image();
+p46.src = '../assets/46.png';
+
+//38
+let p47 = new Image();
+p47.src = '../assets/47.png';
+
+//38
+let p48 = new Image();
+p48.src = '../assets/48.png';
+
 
 //80 ARBOLES
 let p81 = new Image();
@@ -312,9 +327,292 @@ p88.src = '../assets/88.png';
 let p89 = new Image();
 p89.src = '../assets/89.png';
 
+//CONTROL DE LAS TARJETAS
 
-let img = new Image(); 
-img.src = '../assets/nave.png';
+let removerTarjeta1 = true;
+let removerTarjeta2 = true;
+let removerTarjeta3 = true;
+
+const mapa = [
+    [80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 11, 11, 11, 11, 11, 11, 10, 10, ],
+    [11, 11, 11, 11, 10, 10, 10, 81, 82, 83, 81, 82, 83, 81, 82, 83, 81, 82, 83, 81, 82, 83, 81, 82, 83, 81, 82, 83, 81, 82, 83, 81, 82, 83, 81, 82, 83, 81, 82, 83, 10, ],
+    [81, 82, 83, 11, 12, 10, 13, 84, 85, 86, 84, 85, 86, 84, 85, 86, 84, 85, 86, 84, 85, 86, 84, 85, 86, 84, 85, 86, 84, 85, 86, 84, 85, 86, 84, 85, 86, 84, 85, 86, 11, ],
+    [84, 85, 86, 11, 12, 10, 13, 87, 88, 89, 87, 88, 89, 87, 88, 89, 87, 88, 89, 87, 88, 89, 87, 88, 89, 87, 88, 89, 87, 88, 89, 87, 88, 89, 87, 88, 89, 87, 88, 89, 11, ],
+    [87, 88, 89, 11, 12, 10, 13, 11, 11, 11, 11, 11, 11, 11, 11, 19, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 31, 32, 11, 11, 11, 11, 11, 11, ],
+    [11, 90, 11, 11, 12, 10, 13, 11, 80, 11, 11, 11, 11, 11, 11, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 57, 34, 80, 81, 82, 83, 11, 11, ],
+    [11, 81, 82, 83, 12, 10, 13, 11, 11, 11, 80, 10, 11, 11, 11, 12, 10, 51, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 18, 80, 84, 85, 86, 11, 11, ],
+    [90, 84, 85, 86, 12, 10, 13, 11, 11, 11, 11, 10, 11, 11, 11, 12, 10, 13, 80, 92, 95, 11, 80, 11, 95, 11, 95, 11, 11, 90, 80, 11, 11, 11, 11, 80, 87, 88, 89, 11, 11, ],
+    [11, 87, 88, 89, 12, 10, 13, 11, 11, 11, 11, 10, 11, 11, 11, 12, 10, 13, 81, 82, 83, 81, 82, 83, 11, 80, 11, 11, 11, 11, 11, 80, 80, 80, 80, 80, 11, 11, 11, 11, 11, ],
+    [11, 11, 80, 11, 12, 10, 13, 11, 11, 11, 11, 10, 11, 11, 11, 12, 10, 13, 84, 85, 86, 84, 85, 86, 11, 80, 11, 11, 19, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 11, ],
+    [11, 11, 11, 11, 12, 10, 13, 11, 11, 11, 11, 10, 11, 11, 11, 12, 10, 13, 87, 88, 89, 87, 88, 89, 11, 11, 11, 92, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, ],
+    [90, 11, 92, 92, 12, 10, 50, 15, 15, 15, 15, 10, 15, 15, 15, 53, 10, 50, 15, 15, 15, 15, 15, 15, 15, 20, 92, 90, 12, 10, 51, 14, 14, 14, 14, 14, 14, 52, 51, 18, 11, ],
+    [11, 11, 11, 92, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, 11, 12, 10, 13, 80, 92, 92, 95, 11, 11, 12, 13, 11, 11, ],
+    [11, 11, 90, 92, 12, 10, 51, 14, 14, 14, 14, 14, 14, 14, 14, 14, 52, 10, 51, 14, 14, 14, 14, 52, 10, 13, 92, 11, 12, 10, 13, 11, 81, 82, 83, 11, 92, 12, 13, 11, 11, ],
+    [11, 11, 11, 90, 12, 10, 13, 92, 92, 92, 92, 92, 92, 92, 92, 11, 12, 10, 13, 11, 92, 11, 95, 12, 10, 13, 80, 92, 12, 10, 13, 11, 84, 85, 86, 92, 90, 12, 13, 11, 11, ],
+    [11, 90, 11, 11, 12, 10, 13, 92, 11, 81, 82, 83, 81, 82, 83, 11, 12, 10, 13, 81, 82, 83, 80, 12, 10, 13, 80, 11, 12, 10, 50, 20, 87, 88, 89, 92, 11, 12, 13, 11, 11, ],
+    [81, 82, 83, 11, 12, 10, 13, 92, 11, 84, 85, 86, 84, 85, 86, 11, 12, 10, 13, 84, 85, 86, 80, 12, 10, 13, 11, 92, 12, 10, 51, 18, 81, 82, 83, 11, 90, 12, 13, 11, 11, ],
+    [84, 85, 86, 11, 12, 10, 13, 92, 11, 87, 88, 89, 87, 88, 89, 11, 12, 10, 13, 87, 88, 89, 80, 12, 10, 13, 92, 90, 12, 10, 13, 11, 84, 85, 86, 92, 11, 12, 13, 11, 11, ],
+    [87, 88, 89, 11, 12, 10, 13, 92, 80, 11, 80, 80, 11, 80, 11, 11, 12, 10, 13, 11, 11, 11, 11, 12, 10, 13, 11, 11, 12, 10, 13, 11, 87, 88, 89, 90, 11, 12, 13, 11, 11, ],
+    [81, 82, 83, 11, 12, 10, 13, 92, 11, 11, 19, 15, 15, 15, 15, 15, 53, 10, 13, 81, 82, 83, 11, 12, 10, 50, 15, 15, 53, 10, 13, 11, 81, 82, 83, 11, 92, 55, 32, 11, 11, ],
+    [84, 85, 86, 11, 12, 10, 13, 92, 11, 11, 12, 10, 10, 10, 10, 10, 10, 10, 13, 84, 85, 86, 11, 12, 10, 10, 10, 10, 10, 10, 13, 11, 84, 85, 86, 92, 11, 33, 34, 11, 11, ],
+    [87, 88, 89, 11, 12, 10, 13, 92, 11, 11, 12, 10, 51, 14, 14, 14, 52, 10, 13, 87, 88, 89, 11, 16, 14, 14, 14, 14, 14, 14, 18, 11, 87, 88, 89, 11, 11, 16, 18, 11, 11, ],
+    [81, 82, 83, 11, 12, 10, 13, 92, 11, 11, 16, 10, 18, 11, 11, 11, 12, 10, 13, 11, 11, 92, 11, 21, 22, 22, 22, 22, 22, 22, 23, 11, 92, 92, 11, 11, 11, 11, 11, 11, 11, ],
+    [84, 85, 86, 11, 12, 10, 13, 92, 21, 22, 22, 63, 22, 22, 22, 23, 12, 10, 13, 80, 95, 80, 80, 27, 28, 28, 28, 28, 28, 28, 29, 80, 11, 80, 90, 11, 11, 11, 11, 11, 11, ],
+    [87, 88, 89, 11, 12, 10, 13, 92, 24, 25, 25, 63, 25, 25, 25, 26, 12, 10, 50, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 11, ],
+    [11, 90, 11, 11, 12, 10, 13, 92, 24, 25, 25, 62, 98, 61, 25, 26, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, ],
+    [81, 82, 83, 11, 12, 10, 13, 92, 27, 28, 28, 28, 28, 28, 28, 29, 16, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 52, 10, 13, 11, ],
+    [84, 85, 86, 11, 12, 10, 13, 92, 90, 90, 90, 90, 11, 11, 90, 80, 80, 80, 80, 80, 80, 90, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 10, 13, 11, ],
+    [87, 88, 89, 11, 12, 10, 13, 92, 81, 82, 83, 11, 11, 11, 11, 80, 80, 80, 80, 80, 80, 90, 11, 95, 11, 81, 82, 83, 81, 82, 83, 81, 82, 83, 11, 11, 11, 12, 10, 13, 11, ],
+    [11, 11, 11, 11, 12, 10, 13, 92, 84, 85, 86, 11, 19, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 11, 11, 84, 85, 86, 84, 85, 86, 84, 85, 86, 11, 11, 11, 12, 10, 13, 11, ],
+    [11, 21, 22, 22, 53, 10, 13, 92, 87, 88, 89, 80, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, 95, 87, 88, 89, 87, 88, 89, 87, 88, 89, 11, 11, 11, 12, 10, 13, 11, ],
+    [11, 24, 70, 98, 60, 10, 13, 80, 81, 82, 83, 11, 12, 10, 51, 14, 14, 14, 14, 14, 52, 10, 13, 11, 11, 95, 80, 80, 80, 80, 80, 80, 80, 80, 80, 11, 11, 12, 10, 13, 11, ],
+    [11, 27, 28, 29, 12, 10, 13, 11, 84, 85, 86, 11, 12, 10, 13, 95, 90, 90, 80, 95, 12, 10, 50, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 31, 32, 12, 10, 13, 11, ],
+    [11, 81, 82, 83, 12, 10, 13, 11, 87, 88, 89, 80, 12, 10, 13, 11, 81, 82, 83, 80, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 54, 34, 16, 10, 18, 11, ],
+    [11, 84, 85, 86, 12, 10, 13, 80, 11, 11, 11, 11, 12, 10, 13, 11, 84, 85, 86, 95, 12, 10, 51, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 18, 11, 11, 10, 11, 11, ],
+    [11, 87, 88, 89, 12, 10, 13, 11, 11, 80, 11, 11, 12, 10, 13, 11, 87, 88, 89, 80, 12, 10, 13, 80, 95, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 11, 21, 22, 63, 22, 23, ],
+    [11, 81, 82, 83, 12, 10, 50, 15, 15, 15, 15, 15, 53, 10, 13, 11, 95, 11, 95, 11, 12, 10, 13, 11, 95, 81, 82, 83, 81, 82, 83, 81, 82, 83, 95, 11, 24, 25, 63, 25, 26, ],
+    [80, 84, 85, 86, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 13, 11, 19, 15, 15, 15, 53, 10, 13, 95, 11, 84, 85, 86, 84, 85, 86, 84, 85, 86, 11, 11, 24, 25, 62, 99, 26, ],
+    [47, 87, 88, 89, 16, 14, 14, 14, 14, 14, 14, 14, 14, 14, 17, 48, 12, 31, 56, 10, 10, 10, 13, 11, 95, 87, 88, 89, 87, 88, 89, 87, 88, 89, 11, 11, 27, 28, 28, 28, 29, ],
+    [36, 37, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 39, 40, 41, 12, 33, 34, 14, 14, 14, 18, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, ],
+    [42, 43, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 46, 16, 14, 18, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, ],
+
+];
+
+class Proyectil {
+    constructor(x, y, direccionDisparo) {
+        this.x = x;  // Posición inicial x
+        this.y = y;  // Posición inicial y
+        this.direccionDisparo = direccionDisparo; // Dirección del disparo (false = derecha, true = izquierda)
+        this.radio = 3; // Tamaño del proyectil
+        this.color = 'blue';
+        this.velocidad = 5; // Velocidad del proyectil
+    }
+
+    mover() {
+        if (this.direccionDisparo) {
+            this.x -= this.velocidad; // Mueve el proyectil hacia la izquierda
+        } else {
+            this.x += this.velocidad; // Mueve el proyectil hacia la derecha
+        }
+    }
+
+    dibujar(ctx, xOffset, yOffset) {
+        ctx.beginPath();
+        ctx.arc(this.x - xOffset, this.y - yOffset, this.radio, 0, Math.PI * 2); // Ajusta la posición según el offset
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+    }
+}
+
+class Npc {
+    constructor(x, y, w, h, vidas){
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.vidas = vidas;
+    }
+
+    reproducirSonido() {
+        if (sonidoDisparo) {
+            sonidoDisparo.play(); // Reproduce el sonido al disparar
+        }
+    }
+
+}
+
+class Rectangulo {
+    constructor(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.frameIndex = 0;
+        this.numFrames = 8;
+        this.tickCount = 2;
+        this.ticksPerFrame = 15;
+        this.proyectiles = []; // Array para almacenar los proyectiles
+        this.municion = 20; // Ahora es una propiedad de la instancia
+        this.direccionDisparo = false; // Dirección de disparo (false = derecha, true = izquierda)
+    }
+
+    updateAnimation() {
+        this.tickCount += 1;
+
+        if (this.tickCount > this.ticksPerFrame) {
+            this.tickCount = 0;
+            this.frameIndex += 1;
+
+            if (this.frameIndex >= this.numFrames) {
+                this.frameIndex = 0;
+            }
+        }
+        
+    }
+
+    draw(ctx, img, xOffset, yOffset) {
+        const frameWidth = img.width / this.numFrames;
+        const frameHeight = img.height;
+
+        ctx.drawImage(
+            img,
+            this.frameIndex * frameWidth, 0,
+            frameWidth, frameHeight,
+            this.x - xOffset, this.y - yOffset,
+            this.w, this.h
+        );
+
+        // Dibuja todos los proyectiles
+        this.proyectiles.forEach(proyectil => proyectil.dibujar(ctx, xOffset, yOffset));
+    }
+
+    colisionPared(row, col, direccion) {
+        const obstaculos = [11, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 62, 31, 32, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 92, 95, 51];
+
+        if (mapa[row] && obstaculos.includes(mapa[row][col])) {
+            console.log("COLISIÓN DETECTADA");
+            return true;
+        }
+
+        //TARJETA 1
+        if (mapa[col] && mapa[row][col] === 70){
+            console.log("colision con tarjeta")
+            console.log(removerTarjeta1)
+            this.municion = 5;
+            removerTarjeta1 = true;
+            alertaMostrada = false;
+        }
+
+        //TARJETA 2
+        if (mapa[col] && mapa[row][col] === 61){
+            console.log("colision con tarjeta2")
+            console.log(removerTarjeta2)
+            this.municion = 5;
+            removerTarjeta2 = true;
+            alertaMostrada = false;
+        }
+
+        //TARJETA 3
+        if (mapa[col] && mapa[row][col] === 99){
+            console.log("colision con tarjeta3")
+            console.log(removerTarjeta3)
+            this.municion = 5;
+            removerTarjeta3 = true;
+            alertaMostrada = false;
+        }
+
+
+        //VALIDACION TARJETA 1
+        if (mapa[col] && mapa[row][col] === 54) {
+            if (!alertaMostrada) { // Verifica si ya se mostró el alert
+                if (removerTarjeta1 === true) {
+                    alert("HOLA, EL NÚMERO A ESCRIBIR AL FINAL ES 2 (Presiona space para desacoplarse)");
+                } else {
+                    alert("HOLA, NO PUEDES ACCEDER AL NÚMERO DE ESTA MÁQUINA PORQUE NO TIENES LA TARJETA NÚMERO 1 (Presiona space para desacoplarse)");
+                }
+                alertaMostrada = true; // Marca que ya se mostró el alert
+            }
+
+            console.log("Contacto con la maquina 1");
+        }
+
+        //VALIDACION TARJETA 2
+        if (mapa[col] && mapa[row][col] === 55) {
+            if (!alertaMostrada) { // Verifica si ya se mostró el alert
+                if (removerTarjeta2 === true) {
+                    alert("HOLA, EL NÚMERO A ESCRIBIR AL FINAL ES 1 (Presiona space para desacoplarse)");
+                } else {
+                    alert("HOLA, NO PUEDES ACCEDER AL NÚMERO DE ESTA MÁQUINA PORQUE NO TIENES LA TARJETA NUMERO 2 (Presiona space para desacoplarse)");
+                }
+                alertaMostrada = true; // Marca que ya se mostró el alert
+            }
+
+            console.log("Contacto con la maquina 2");
+        }
+        
+        //VALIDACION TARJETA 3
+        if (mapa[col] && mapa[row][col] === 56) {
+            if (!alertaMostrada) { // Verifica si ya se mostró el alert
+                if (removerTarjeta3 === true) {
+                    alert("HOLA, EL NÚMERO A ESCRIBIR AL FINAL ES 0, SI CUENTAS CON LAS OTRAS 2 TARJETAS DIRÍGETE A LA MÁQUINA FINAL (Presiona space para desacoplarse)");
+                } else {
+                    alert("HOLA, NO PUEDES ACCEDER AL NUMERO DE ESTA MÁQUINA PORQUE NO TIENES LA TARJETA NUMERO 2 (Presiona space para desacoplarse)");
+                }
+                alertaMostrada = true; // Marca que ya se mostró el alert
+            }
+
+            console.log("Contacto con la maquina 3");
+        }
+
+        //VALIDACION TARJETA 4
+        if (mapa[col] && mapa[row][col] === 57) {
+            if (!alertaMostrada) { // Verifica si ya se mostró el alert
+                if (removerTarjeta1 === true && removerTarjeta2 === true && removerTarjeta3 === true) {
+                    let respuesta = prompt("Por favor, ingresa los números mostrados en las máquinas:", "");
+
+                    // Verifica si el usuario ha ingresado un valor
+                    if (respuesta === '201' || respuesta === "102" || respuesta === "021" || respuesta === "120" || respuesta === "210" || respuesta === "012") {
+                        alert("FELICIDADES, GANASTE!!!!")
+                        window.location.href = '../../index.html';
+                    } else {
+                        alert("ERROR, HAS SIDO ELIMINADO")
+                        window.location.href = '../../index.html';
+                    }
+                } 
+                alertaMostrada = true; // Marca que ya se mostró el alert
+            }
+
+            console.log("Contacto con la maquina 3");
+        }
+        
+
+        return false;
+    }
+
+    disparo() {
+        if (this.municion > 0) {
+            // Ajusta horizontalmente el proyectil dependiendo de la dirección
+            let xProyectil = this.direccionDisparo ? this.x : this.x + this.w; 
+            let yProyectil = this.y + this.h / 2; // En el medio vertical del jugador
+            
+            // Crea un nuevo proyectil con la dirección actual del disparo
+            let nuevoProyectil = new Proyectil(xProyectil, yProyectil, this.direccionDisparo);
+            this.proyectiles.push(nuevoProyectil);
+
+            this.municion--; // Disminuir la munición
+            this.reproducirSonido(); // Reproducir sonido al disparar
+        }
+        
+        if (this.municion === 0) console.log("YA NO HAY MUNICION");
+    }
+
+    cambiarDireccionDisparo(direccion) {
+        this.direccionDisparo = direccion; // Cambia la dirección del disparo (true: izquierda, false: derecha)
+    }
+
+    reproducirSonido() {
+        if (sonidoDisparo) {
+            sonidoDisparo.play(); // Reproduce el sonido al disparar
+        }
+    }
+}
+
+//Sonido de disparo
+const sonidoDisparo = new Audio('../assets/disparo.mp3');
+
+
+const npcSprite = new Image();
+npcSprite.src = '../assets/playerLeft.png;'
+
+let npc = new Npc(32, 32, 32, 32);
+
+// Cargar la imagen
+const img = new Image();
+img.src = '../assets/player.png';
+
+let player = new Rectangulo(160, 128, 32, 32);
+
 
 let xOffset = 0; // Desplazamiento del mapa en el eje X
 let yOffset = 0; // Desplazamiento del mapa en el eje Y
@@ -322,6 +620,10 @@ let yOffset = 0; // Desplazamiento del mapa en el eje Y
 function pintar() {
     update();
     dibujarMatriz();
+    // ctx.clearRect(0, 0, my_canvas.width, my_canvas.height);
+
+    // npc.draw(ctx, npcSprite, npc.x, npc.y);
+    player.draw(ctx, img, xOffset, yOffset);
     requestAnimationFrame(pintar);
 }
 
@@ -331,6 +633,71 @@ function dibujarMatriz() {
     for (let i = 0; i < mapa.length; i++) {
         for (let j = 0; j < mapa[i].length; j++) {
             const valor = mapa[i][j];
+
+            //TARJETA 1
+            if (valor === 70 && mapa[i][j] === 70) {
+                ctx.drawImage(tarjeta1, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            // CONTROL DE LA TARJETA 
+            if(removerTarjeta1 === true){
+                if (valor === 70 && mapa[i][j] === 70) {
+                    ctx.drawImage(pistola2, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+                }
+            }
+            //Madera con agua (RECUERDA ESTO NO LO TIENES QUE LE REPETIR)
+            if (valor ===  98 && mapa[i][j] === 98) {
+                ctx.drawImage(p98, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+
+            //CONTROL DE LA TARJETA 2
+
+            //Madera con agua (RECUERDA ESTO NO LO TIENES QUE LE REPETIR)
+            if (valor ===  61 && mapa[i][j] === 61) {
+                ctx.drawImage(tarjeta2, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+
+            if(removerTarjeta2 === true){
+                if (valor === 61 && mapa[i][j] === 61) {
+                    ctx.drawImage(p61, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+                }
+            }
+
+            //CONTROL DE LA TARJETA 3
+
+            //Madera con agua (RECUERDA ESTO NO LO TIENES QUE LE REPETIR)
+            if (valor ===  99 && mapa[i][j] === 99) {
+                ctx.drawImage(tarjeta3, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+
+            if(removerTarjeta3 === true){
+                if (valor === 99 && mapa[i][j] === 99) {
+                    ctx.drawImage(p98, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+                }
+            }
+
+            //MAQUINAS DE CRACK
+
+            //MAQUINA 1
+            if (valor === 54 && mapa[i][j] === 54) {
+                ctx.drawImage(maquina1, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+
+            //MAQUINA 2
+            if (valor === 55 && mapa[i][j] === 55) {
+                ctx.drawImage(maquina2, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+
+            //MAQUINA 3
+            if (valor === 56 && mapa[i][j] === 56) {
+                ctx.drawImage(maquina3, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+
+            //MAQUINA 4
+            if (valor === 57 && mapa[i][j] === 57) {
+                ctx.drawImage(maquina4, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+
+
             // Dibuja las paredes
             if (valor === 11 && mapa[i][j] === 11) {
                 ctx.drawImage(roca, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
@@ -411,6 +778,7 @@ function dibujarMatriz() {
                 ctx.drawImage(esq4, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
             }
 
+            //MAQUINAS
 
 
             //MUROS DE COLOR NEGRO
@@ -446,6 +814,8 @@ function dibujarMatriz() {
                 ctx.drawImage(p30, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
             }
 
+
+
             //MESA DE CRACK
             if (valor ===  31 && mapa[i][j] === 31) {
                 ctx.drawImage(p31, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
@@ -476,6 +846,30 @@ function dibujarMatriz() {
             }
             if (valor ===  40 && mapa[i][j] === 40) {
                 ctx.drawImage(p40, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            if (valor ===  41 && mapa[i][j] === 41) {
+                ctx.drawImage(p41, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            if (valor ===  42 && mapa[i][j] === 42) {
+                ctx.drawImage(p42, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            if (valor ===  43 && mapa[i][j] === 43) {
+                ctx.drawImage(p43, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            if (valor ===  44 && mapa[i][j] === 44) {
+                ctx.drawImage(p44, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            if (valor ===  45 && mapa[i][j] === 45) {
+                ctx.drawImage(p45, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            if (valor ===  46 && mapa[i][j] === 46) {
+                ctx.drawImage(p46, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            if (valor ===  47 && mapa[i][j] === 47) {
+                ctx.drawImage(p47, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            if (valor ===  48 && mapa[i][j] === 48) {
+                ctx.drawImage(p48, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
             }
 
             //PIEDRA Y ARBOLES
@@ -521,54 +915,98 @@ function dibujarMatriz() {
             }
 
             //Madera con agua
-            if (valor ===  61 && mapa[i][j] === 61) {
-                ctx.drawImage(p61, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
-            }
-
-            //Madera con agua
             if (valor ===  62 && mapa[i][j] === 62) {
                 ctx.drawImage(p62, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
             }
+            //Madera con agua HACIA ABAJO
+            if (valor ===  63 && mapa[i][j] === 63) {
+                ctx.drawImage(p63, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
 
+            //Madera con agua HACIA LA DERECHA
+            if (valor ===  64 && mapa[i][j] === 64) {
+                ctx.drawImage(p64, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
 
-
-
+            //ARBUSTO
+            if (valor ===  92 && mapa[i][j] === 92) {
+                ctx.drawImage(arbusto, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
+            //ARBUSTO
+            if (valor ===  95 && mapa[i][j] === 95) {
+                ctx.drawImage(p95, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
+            }
         }
     }
 
     // Dibuja la nave
-    ctx.drawImage(img, rectangulo.x - xOffset, rectangulo.y - yOffset, rectangulo.w, rectangulo.h);
+    ctx.drawImage(img, player.x - xOffset, player.y - yOffset, player.w, player.h);
 }
 
 function update() {
     if (!pausa) {
-        switch (direccion) {
-            case "left":
-                rectangulo.x -= 5;
-                break;
-            case "up":
-                rectangulo.y -= 5;
-                break;
-            case "right":
-                rectangulo.x += 5;
-                break;
-            case "down":
-                rectangulo.y += 5;
-                break;
+        let movimientoX = 0;
+        let movimientoY = 0;
+
+        if (teclasPresionadas.left) {
+            img.src = '../assets/playerLeft.png';
+            movimientoX = -1;
+            direccionDisparo = true;
+            console.log(direccionDisparo)
+        }
+        if (teclasPresionadas.up) {
+            movimientoY = -1;
+        }
+        if (teclasPresionadas.right) {
+            img.src = '../assets/player.png';
+            console.log(direccionDisparo)
+            movimientoX = 1;
+            direccionDisparo = false;
+        }
+        if (teclasPresionadas.down) {
+            movimientoY = 1;
         }
 
-        // Verificar colisión con las paredes
-        const col = Math.floor(rectangulo.x / bloque); // Usar la posición real sin compensar el offset
-        const row = Math.floor(rectangulo.y / bloque);
+        if (teclasPresionadas.disparo) {
+            player.disparo();
+            teclasPresionadas.disparo = false; // Solo dispara una vez por tecla
+        }
 
-        // Corrige el desplazamiento en la detección
+        const nuevaX = player.x + movimientoX;
+        const nuevaY = player.y + movimientoY;
+
+        const col = Math.floor(nuevaX / bloque);
+        const row = Math.floor(nuevaY / bloque);
+
         if (col >= 0 && col < mapa[0].length && row >= 0 && row < mapa.length) {
-            rectangulo.colisionPared(row, col);
+            if (!player.colisionPared(row, col, direccion)) {
+                player.x = nuevaX;
+                player.y = nuevaY;
+            }
         }
 
-        // Control de la cámara para que siga al rectángulo
-        xOffset = rectangulo.x - (my_canvas.width / 2 - rectangulo.w / 2);
-        yOffset = rectangulo.y - (my_canvas.height / 2 - rectangulo.h / 2);
+        // Actualizar la animación
+        player.updateAnimation();
+
+        // Mover los proyectiles y eliminarlos si están fuera del canvas
+        player.proyectiles.forEach(proyectil => {
+            proyectil.mover();
+        });
+
+        player.proyectiles = player.proyectiles.filter(proyectil => {
+            // El proyectil se elimina si está fuera del canvas (derecha del canvas)
+            return proyectil.x >= -proyectil.radio; // Asegúrate de considerar el radio del proyectil
+        });
+
+        // Limpiar el canvas
+        ctx.clearRect(0, 0, my_canvas.width, my_canvas.height);
+
+        // Dibuja al jugador y los proyectiles
+        player.draw(ctx, img, xOffset, yOffset);
+
+        // Control de la cámara para que siga al jugador
+        xOffset = player.x - (my_canvas.width / 2 - player.w / 2);
+        yOffset = player.y - (my_canvas.height / 2 - player.h / 2);
 
     } else {
         ctx.fillStyle = "rgba(255, 100, 51, 0.5)";
