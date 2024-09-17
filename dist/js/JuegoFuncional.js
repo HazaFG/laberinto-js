@@ -26,15 +26,6 @@ document.addEventListener('webkitfullscreenchange', ajustarCanvas);
 document.addEventListener('mozfullscreenchange', ajustarCanvas);
 document.addEventListener('MSFullscreenChange', ajustarCanvas);
 
-function getRandomColor() {
-    var trans = '0.5'; // 50% transparency
-    var color = 'rgba(';
-    for (var i = 0; i < 3; i++) {
-        color += Math.floor(Math.random() * 255) + ',';
-    }
-    color += trans + ')'; // add the transparency
-    return color;
-}
 
 let teclasPresionadas = {
     left: false,
@@ -44,12 +35,9 @@ let teclasPresionadas = {
     disparo: false,
 };
 
-let score = 0;
 let x = 0;
 let y = 0;
 var pausa = false;
-let vidasNpc = 7;
-let vidas = 10;
 
 let direccionDisparo = true;
 
@@ -341,9 +329,9 @@ p89.src = '../assets/89.png';
 
 //CONTROL DE LAS TARJETAS
 
-let removerTarjeta1 = false;
-let removerTarjeta2 = false;
-let removerTarjeta3 = false;
+let removerTarjeta1 = true;
+let removerTarjeta2 = true;
+let removerTarjeta3 = true;
 
 const mapa = [
     [80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 11, 11, 11, 11, 11, 11, 10, 10, ],
@@ -408,15 +396,8 @@ class Proyectil {
         }
     }
 
-
     dibujar(ctx, xOffset, yOffset) {
         ctx.beginPath();
-        // Cambia el color dependiendo de si es un proyectil del NPC
-        if (this.esDelNpc) {
-            ctx.fillStyle = "red"; 
-        } else {
-            ctx.fillStyle = "blue"; 
-        }
         ctx.arc(this.x - xOffset, this.y - yOffset, this.radio, 0, Math.PI * 2); // Ajusta la posición según el offset
         ctx.fillStyle = this.color;
         ctx.fill();
@@ -424,90 +405,63 @@ class Proyectil {
     }
 }
 
-class Npc {
-    constructor(x, y, w, h, vidas) {
-        this.x = x;  // Posición en X
-        this.y = y;  // Posición en Y
-        this.w = w;  // Ancho del NPC
-        this.h = h;  // Altura del NPC
-        this.frameIndex = 0;
-        this.numFrames = 8;
-        this.tickCount = 2;
-        this.ticksPerFrame = 15;
-        this.moveSpeed = 0.2;  // Velocidad de movimiento hacia la izquierda
-        this.proyectiles = []; // Lista de proyectiles disparados por el NPC
-        this.vidas = vidas;
+
+class NPC {
+    constructor(x, y, w, h, vidas, direccionDisparo) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.vidas = vidas; // Número de vidas del NPC
+        this.direccionDisparo = direccionDisparo; // Dirección del disparo del NPC (false = derecha, true = izquierda)
+        this.proyectiles = []; // Array para almacenar los proyectiles del NPC
+        this.intervaloDisparo = 100; // Intervalo de disparo en milisegundos
+        this.tiempoUltimoDisparo = 0; // Para controlar el intervalo de disparo
+        this.velocidadDisparo = 3; // Velocidad de los proyectiles del NPC
     }
 
-    updateAnimation() {
-        this.colisionPared();
-        this.tickCount += 1;
-
-        if (this.tickCount > this.ticksPerFrame) {
-            this.tickCount = 0;
-            this.frameIndex += 1;
-
-            if (this.frameIndex >= this.numFrames) {
-                this.frameIndex = 0;
-            }
-        }
-
-        // Mueve el NPC hacia la izquierda lentamente
-        this.x -= this.moveSpeed;
-
-        if(this.x <= 100){
-            this.x = 900;
-        }
-
-        if(this.vidas <= 0){
-            console.log('npc sin vidas')
-            this.x = 1900;
-        }
-        // Mueve y actualiza todos los proyectiles
-        this.proyectiles.forEach(proyectil => proyectil.mover());
+    mover() {
+        // En este caso, el NPC es fijo, pero puedes agregar lógica de movimiento si es necesario
     }
 
-    colisionPared(row, col) {
-        if (mapa[col] && mapa[row][col] === 10) {
-            console.log('npc gay')
-        }
-    }
-
-    draw(ctx, npcSprite, xOffset, yOffset) {
-        const frameWidth = npcSprite.width / this.numFrames;
-        const frameHeight = npcSprite.height;
-    
-        // Calculamos la posición ajustada en base al desplazamiento del mapa
-        const npcX = this.x - xOffset;
-        const npcY = this.y - yOffset;
-    
-        // Verificar si el NPC está dentro del área visible antes de dibujarlo
-        if (npcX + this.w > 0 && npcX < 500 && npcY + this.h > 0 && npcY < 500) {
-            // Dibuja el NPC solo si está dentro del área visible del canvas
-            ctx.drawImage(
-                npcSprite,
-                this.frameIndex * frameWidth, 0,
-                frameWidth, frameHeight,
-                npcX, npcY,
-                this.w, this.h
-            );
-        }
-    
-        // Dibuja todos los proyectiles
+    dibujar(ctx, xOffset, yOffset) {
+        ctx.fillStyle = 'red'; // Color para representar el NPC
+        ctx.fillRect(this.x - xOffset, this.y - yOffset, this.w, this.h);
+        
+        // Dibuja todos los proyectiles del NPC
         this.proyectiles.forEach(proyectil => proyectil.dibujar(ctx, xOffset, yOffset));
     }
-    
 
-    disparar() {
-        // Crea un nuevo proyectil y lo agrega a la lista de proyectiles
-        const nuevoProyectil = new Proyectil(this.x + this.w / 2, this.y + this.h / 2, true); // Dispara a la derecha
-        this.proyectiles.push(nuevoProyectil);
+    colisionConDisparo(proyectiles) {
+        proyectiles.forEach(proyectil => {
+            if (proyectil.x < this.x + this.w &&
+                proyectil.x + proyectil.radio > this.x &&
+                proyectil.y < this.y + this.h &&
+                proyectil.y + proyectil.radio > this.y) {
+                // Colisión detectada
+                this.vidas--; // Reduce las vidas
+                proyectil.x = -9999; // Mueve el proyectil fuera del canvas
+                if (this.vidas <= 0) {
+                    this.eliminar(); // Elimina el NPC si las vidas llegan a cero
+                }
+            }
+        });
     }
 
-    reproducirSonido() {
-        if (sonidoDisparo) {
-            sonidoDisparo.play(); // Reproduce el sonido al disparar
+    disparo() {
+        const ahora = Date.now();
+        if (ahora - this.tiempoUltimoDisparo > this.intervaloDisparo) {
+            let xProyectil = this.x + this.w / 2; // Centro horizontal del NPC
+            let yProyectil = this.y + this.h; // Parte inferior del NPC
+            let nuevoProyectil = new Proyectil(xProyectil, yProyectil, this.direccionDisparo);
+            this.proyectiles.push(nuevoProyectil);
+            this.tiempoUltimoDisparo = ahora; // Actualiza el tiempo del último disparo
         }
+    }
+
+    eliminar() {
+        // Puedes implementar más lógica aquí si es necesario, por ejemplo, eliminar el NPC de una lista
+        console.log('NPC eliminado');
     }
 }
 
@@ -523,9 +477,35 @@ class Rectangulo {
         this.tickCount = 2;
         this.ticksPerFrame = 15;
         this.proyectiles = []; // Array para almacenar los proyectiles
-        this.municion = 80; // Ahora es una propiedad de la instancia
+        this.municion = 20; // Ahora es una propiedad de la instancia
         this.direccionDisparo = false; // Dirección de disparo (false = derecha, true = izquierda)
+
+        // //VARIABLES PARA DESPLEGAR EN PANTALLA 
+        // this.vidas = 3;
+        // this.tarjetas = 0;
+        // this.imagenVida = new Image();
+        // this.imagenVida.src = '../assets/life.gif'; // Ruta a tu imagen de vida
+        // this.imagenTarjeta = new Image();
+        // this.imagenTarjeta.src = '../assets/tarjeta1.png'; // Ruta a tu imagen de tarjeta
     }
+
+    // dibujarInfoAdicional(ctx) {
+    //     // Dibuja el número de vidas
+    //     for (let i = 0; i < this.vidas; i++) {
+    //         ctx.drawImage(this.imagenVida, 10 + i * 40, 10, 30, 30); // Ajusta la posición y tamaño
+    //         console.log(this.vidas)
+    //     }
+
+    //     // Dibuja el número de tarjetas
+    //     for (let i = 0; i < this.tarjetas; i++) {
+    //         ctx.drawImage(this.imagenTarjeta, 10 + i * 40, 50, 30, 30); // Ajusta la posición y tamaño
+    //     }
+
+    //     // Dibuja el texto del número de tarjetas
+    //     ctx.font = '20px Arial';
+    //     ctx.fillStyle = 'white';
+    //     ctx.fillText(`Tarjetas: ${this.tarjetas}`, 10, 100); // Ajusta la posición y estilo
+    // }
 
     updateAnimation() {
         this.tickCount += 1;
@@ -538,7 +518,6 @@ class Rectangulo {
                 this.frameIndex = 0;
             }
         }
-        
     }
 
     draw(ctx, img, xOffset, yOffset) {
@@ -569,7 +548,7 @@ class Rectangulo {
         if (mapa[col] && mapa[row][col] === 70){
             console.log("colision con tarjeta")
             console.log(removerTarjeta1)
-            this.municion =80;
+            this.municion = 5;
             removerTarjeta1 = true;
             alertaMostrada = false;
         }
@@ -578,7 +557,7 @@ class Rectangulo {
         if (mapa[col] && mapa[row][col] === 61){
             console.log("colision con tarjeta2")
             console.log(removerTarjeta2)
-            this.municion = 80;
+            this.municion = 5;
             removerTarjeta2 = true;
             alertaMostrada = false;
         }
@@ -587,10 +566,11 @@ class Rectangulo {
         if (mapa[col] && mapa[row][col] === 99){
             console.log("colision con tarjeta3")
             console.log(removerTarjeta3)
-            this.municion = 80;
+            this.municion = 5;
             removerTarjeta3 = true;
             alertaMostrada = false;
         }
+
 
         //VALIDACION TARJETA 1
         if (mapa[col] && mapa[row][col] === 54) {
@@ -602,6 +582,7 @@ class Rectangulo {
                 }
                 alertaMostrada = true; // Marca que ya se mostró el alert
             }
+
             console.log("Contacto con la maquina 1");
         }
 
@@ -615,6 +596,7 @@ class Rectangulo {
                 }
                 alertaMostrada = true; // Marca que ya se mostró el alert
             }
+
             console.log("Contacto con la maquina 2");
         }
         
@@ -628,6 +610,7 @@ class Rectangulo {
                 }
                 alertaMostrada = true; // Marca que ya se mostró el alert
             }
+
             console.log("Contacto con la maquina 3");
         }
 
@@ -686,59 +669,26 @@ class Rectangulo {
 
 //Sonido de disparo
 const sonidoDisparo = new Audio('../assets/disparo.mp3');
-// let npc = new Npc(390, 400, 32, 32, 2, npcSprite, 7, 15);  // 4 frames, cambio cada 5 ticks
 
 
-const npcSprite = new Image()
-npcSprite.src = "../assets/npcLeft.png"
+let npcSprite = new Image();
+npcSprite.src = '../assets/playerLeft.png;'
 
 // Cargar la imagen
 const img = new Image();
 img.src = '../assets/player.png';
 
-let player = new Rectangulo(160, 128, 22, 32);
-
-
-// let npc = new Npc(800, 400, 21, 32);
-let npc = [
-    new Npc(100, 100, 21, 32, vidasNpc),
-    new Npc(300, 400, 21, 32, vidasNpc),
-    new Npc(500, 600, 21, 32, vidasNpc),
-];
-
-
-
-
+let player = new Rectangulo(160, 128, 32, 32);
 
 
 let xOffset = 0; // Desplazamiento del mapa en el eje X
 let yOffset = 0; // Desplazamiento del mapa en el eje Y
 
-
-const gif = new Image();
-gif.src = '../assets/life.gif';
-
 function pintar() {
     update();
     dibujarMatriz();
-
-    // Dibujar NPCs
-    npc.forEach(npcInstance => {
-        npcInstance.draw(ctx, npcSprite, xOffset, yOffset);
-    });
-
-    // Dibujar el score en la esquina superior
-    ctx.strokeText(`score: ${score}`, 240, 20);
- 
-    ctx.drawImage(gif, 180, 7, 22, 22);  
-
-    ctx.fillText(vidas, 210, 22);  // Ajusta la posición (210, 25) para alinearlo correctamente
-    
-
-    // Dibujar al jugador
+    // ctx.clearRect(0, 0, my_canvas.width, my_canvas.height);
     player.draw(ctx, img, xOffset, yOffset);
-
-    // Llamada recursiva para continuar animando
     requestAnimationFrame(pintar);
 }
 
@@ -1051,22 +1001,18 @@ function dibujarMatriz() {
             if (valor ===  95 && mapa[i][j] === 95) {
                 ctx.drawImage(p95, j * bloque - xOffset, i * bloque - yOffset, bloque, bloque);
             }
+
+
+
+
         }
     }
 
     // Dibuja la nave
     ctx.drawImage(img, player.x - xOffset, player.y - yOffset, player.w, player.h);
-    ctx.drawImage(npcSprite, npc.x - xOffset, npc.y - yOffset, npc.w, npc.h);
 }
 
-let npcTimer = 0; // Temporizador para controlar la frecuencia de disparo del NPC
-const npcFireRate = 100; // NPC disparará cada 100 actualizaciones
-
 function update() {
-    npc.forEach(npcInstance => {
-        npcInstance.updateAnimation();
-    });
-
     if (!pausa) {
         let movimientoX = 0;
         let movimientoY = 0;
@@ -1075,12 +1021,14 @@ function update() {
             img.src = '../assets/playerLeft.png';
             movimientoX = -1;
             direccionDisparo = true;
+            console.log(direccionDisparo)
         }
         if (teclasPresionadas.up) {
             movimientoY = -1;
         }
         if (teclasPresionadas.right) {
             img.src = '../assets/player.png';
+            console.log(direccionDisparo)
             movimientoX = 1;
             direccionDisparo = false;
         }
@@ -1106,68 +1054,26 @@ function update() {
             }
         }
 
-        // Actualizar la animación del jugador
+        // Actualizar la animación
         player.updateAnimation();
 
-        // Incrementar el temporizador del NPC y disparar si se cumple el tiempo
-        npcTimer += 2;
-        if (npcTimer >= npcFireRate) {
-            npc.forEach(npcInstance => {
-                npcInstance.disparar();
-            });
-            npcTimer = 0; // Restablecer el temporizador
-        }
-
-        // Detectar colisión entre proyectiles del jugador y todos los NPCs
+        // Mover los proyectiles y eliminarlos si están fuera del canvas
         player.proyectiles.forEach(proyectil => {
             proyectil.mover();
-
-            npc.forEach((npcInstance, index) => {
-                if (detectarColision(proyectil, npcInstance)) {
-                    console.log("El jugador golpeó al NPC");
-
-                    // Reducir las vidas del NPC
-                    npcInstance.vidas -= 1;
-                    console.log("Vidas restantes del NPC:", npcInstance.vidas);
-
-                    // Si las vidas del NPC llegan a 0, reubicarlo o eliminarlo
-                    if (npcInstance.vidas <= 0) {
-                        console.log("NPC sin vidas. Reubicando...");
-                        npcInstance.x = 1900; 
-                        score = score + 50
-                        // Reubicar el NPC
-                        // O si deseas eliminar el NPC, podrías usar:
-                        // npc.splice(index, 1); // Eliminar el NPC del array
-                    }
-                }
-            });
         });
 
-        // Mover proyectiles del NPC y detectar colisiones con el jugador
-        npc.forEach(npcInstance => {
-            npcInstance.proyectiles.forEach(proyectil => {
-                proyectil.mover();
-
-                if (detectarColision(proyectil, player)) {
-                    console.log("El NPC golpeó al jugador");
-                    vidas = vidas - 1;
-                }
-            });
-        });
-
-        // Filtrar los proyectiles del jugador para mantener solo los dentro del canvas
         player.proyectiles = player.proyectiles.filter(proyectil => {
-            return proyectil.x >= -proyectil.radio;
+            // El proyectil se elimina si está fuera del canvas (derecha del canvas)
+            return proyectil.x >= -proyectil.radio; // Asegúrate de considerar el radio del proyectil
         });
 
-        // Limpiar el canvas y dibujar el jugador y los NPCs
+        // Limpiar el canvas
         ctx.clearRect(0, 0, my_canvas.width, my_canvas.height);
-        player.draw(ctx, img, xOffset, yOffset);
-        npc.forEach(npcInstance => {
-            npcInstance.draw(ctx, npcSprite, xOffset, yOffset);
-        });
 
-        // Controlar la cámara para que siga al jugador
+        // Dibuja al jugador y los proyectiles
+        player.draw(ctx, img, xOffset, yOffset);
+
+        // Control de la cámara para que siga al jugador
         xOffset = player.x - (my_canvas.width / 2 - player.w / 2);
         yOffset = player.y - (my_canvas.height / 2 - player.h / 2);
 
@@ -1177,38 +1083,6 @@ function update() {
         ctx.strokeText("PAUSA", my_canvas.width / 2 - 30, my_canvas.height / 2);
     }
 }
-
-
-
-// Función para detectar colisión entre un proyectil y un objetivo, que chamba tan jodida es esta
-function detectarColision(proyectil, objetivo) {
-    const distanciaX = proyectil.x - (objetivo.x + objetivo.w / 2);
-    const distanciaY = proyectil.y - (objetivo.y + objetivo.h / 2);
-    const distancia = Math.sqrt(distanciaX * distanciaX + distanciaY * distanciaY);
-
-    // La perra colisión si la distancia es menor al radio del proyectil más un margen de seguridad
-    const margen = 10; // Ajusta este valor según el tamaño del objetivo
-    return distancia < proyectil.radio + margen;
-}
-
-        // Función para actualizar el temporizador
-let seconds = 0;
-let minutes = 0;
-
-function updateTimer() {
-    seconds++;
-    if (seconds >= 60) {
-        seconds = 0;
-        minutes++;
-    }
-    let secondsStr = seconds < 10 ? "0" + seconds : seconds;
-    let minutesStr = minutes < 10 ? "0" + minutes : minutes;
-    document.getElementById('timer').innerText = `${minutesStr}:${secondsStr}`;
-}
-
-// Actualizar el temporizador cada segundo
-setInterval(updateTimer, 1000);
-
 
 
 requestAnimationFrame(pintar);

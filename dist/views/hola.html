@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa del Juego</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="my_canvas" width="320" height="320"></canvas>
+    <script src="../js/Controles.js"></script>
+    <script>
+        const my_canvas = document.getElementById('my_canvas');
+        const ctx = my_canvas.getContext('2d');
+
+        // Definir el mapa con una matriz bidimensional
+        const mapa = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 2, 2, 0, 0, 0, 0, 1],
+            [1, 0, 0, 2, 2, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ];
+
+        // Cargar las imágenes que representan cada elemento del mapa
+        const imagenes = [
+            new Image(), // Para el número 1 (pared)
+            new Image(), // Para el número 2 (suelo)
+        ];
+
+        // Asignar las rutas de las imágenes
+        imagenes[0].src = '../assets/pared.png';  // Imagen para pared
+        imagenes[1].src = '../assets/suelo.png';  // Imagen para suelo
+
+        // Función para dibujar el mapa
+        function dibujarMapa() {
+            const tileSize = 32; // Tamaño de cada "tile" o bloque del mapa
+
+            for (let row = 0; row < mapa.length; row++) {
+                for (let col = 0; col < mapa[row].length; col++) {
+                    const tile = mapa[row][col];
+
+                    // Si el valor es 0, no dibujamos nada (espacio vacío)
+                    if (tile === 0) continue;
+
+                    const img = imagenes[tile - 1]; // Restamos 1 porque el array `imagenes` empieza en 0
+
+                    // Dibujamos la imagen en su posición correspondiente
+                    ctx.drawImage(img, col * tileSize, row * tileSize, tileSize, tileSize);
+                }
+            }
+        }
+
+        // Clase para los objetos del juego como el jugador o las paredes
+        class Rectangulo {
+            constructor(x, y, w, h) {
+                this.x = x;
+                this.y = y;
+                this.w = w;
+                this.h = h;
+            }
+        }
+
+        let rectangulo = new Rectangulo(50, 50, 32, 32); // Personaje (nave)
+
+        // Función para pintar todo el canvas (mapa + personaje)
+        function pintar() {
+            update();
+
+            // Limpiar el canvas
+            ctx.clearRect(0, 0, my_canvas.width, my_canvas.height);
+
+            // Dibujar el mapa
+            dibujarMapa();
+
+            // Dibujar el personaje (rectángulo)
+            ctx.fillStyle = 'blue'; // Color del personaje
+            ctx.fillRect(rectangulo.x, rectangulo.y, rectangulo.w, rectangulo.h);
+
+            // Llamar a la función de nuevo en el siguiente frame
+            requestAnimationFrame(pintar);
+        }
+
+        // Función de actualización (lógica del juego)
+        function update() {
+            // ctx.fillStyle = "gray";
+            // ctx.fillRect(0, 0, 500, 500);
+
+            if (!pausa) {
+                switch(direccion) {
+                    case "left":
+                        rectangulo.x -= 2;
+                        if (rectangulo.x < -20) rectangulo.x = 500;
+                    break;
+                    case "up":
+                        rectangulo.y -= 2;
+                        if (rectangulo.y < -20) rectangulo.y = 500;
+                    break;
+                    case "right":
+                        if (rectangulo.x > 500) rectangulo.x = 0;
+                        rectangulo.x += 2;
+                    break;
+                    case "down":
+                        rectangulo.y += 2;
+                        if (rectangulo.y > 500) rectangulo.y = 0;
+                    break;
+                }
+            } else {
+                ctx.fillStyle = "rgb(255, 100, 51, 0.5)";
+                ctx.fillRect(0, 0, 500, 500);
+                ctx.strokeText("PAUSA", 220, 250);
+            }
+        }
+
+        // Esperar a que las imágenes estén cargadas antes de iniciar el juego
+        imagenes[0].onload = function() {
+            requestAnimationFrame(pintar);
+        };
+
+        requestAnimationFrame(pintar);
+    </script>
+</body>
+</html>
