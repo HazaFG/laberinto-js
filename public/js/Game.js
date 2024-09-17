@@ -49,7 +49,7 @@ let x = 0;
 let y = 0;
 var pausa = false;
 let vidasNpc = 7;
-let vidas = 40;
+let vidas = 80;
 
 let direccionDisparo = true;
 
@@ -587,6 +587,7 @@ class Rectangulo {
             this.municion = 80;
             removerTarjeta1 = true;
             alertaMostrada = false;
+            vidas = vidas + 0.1;
         }
 
         //TARJETA 2
@@ -596,6 +597,8 @@ class Rectangulo {
             this.municion = 80;
             removerTarjeta2 = true;
             alertaMostrada = false;
+            vidas = vidas + 0.1;
+
         }
 
         //TARJETA 3
@@ -605,6 +608,8 @@ class Rectangulo {
             this.municion = 80;
             removerTarjeta3 = true;
             alertaMostrada = false;
+            vidas = vidas + 0.1;
+
         }
 
         //VALIDACION TARJETA 1
@@ -770,7 +775,8 @@ function pintar() {
     ctx.fillText(player.municion, 150, 22); 
 
     ctx.fillStyle = 'black'
-    ctx.fillText(vidas, 210, 22); 
+    ctx.fillText(vidas.toFixed(2), 210, 22);
+
     
 
     // Dibujar al jugador
